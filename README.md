@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo-128.png" width="96" alt="FireSweep logo"></p>
+
 # FireSweep
 
 **Clean up the Fire TVs on your network from a Windows PC.** FireSweep finds your Fire TVs, backs each one up, and lets you switch off Amazon's ads, tracking and clutter with a list of switches. It can also install a calmer home screen, IsafellieOS, with the dock apps you pick. Every change can be undone.
@@ -6,6 +8,7 @@
 
 - **One file, nothing to install.** `FireSweep.exe` has adb and the home screen built in.
 - **Finds your TVs.** It scans your network for Fire TVs with ADB debugging on, or you can type a TV's IP address.
+- **Several TVs in one go.** Tick other TVs in the list and one Apply sets them all to match.
 - **Backs up first.** Before the first change it saves each TV's package list, settings and a screenshot.
 - **Switches off, never uninstalls.** Amazon apps are disabled, not removed. Untick anything to undo it.
 - **Per-TV restore.** Each TV gets a folder with a change log and a double-click **Restore this TV.cmd**.
@@ -25,6 +28,12 @@ It needs Windows 10 or 11 (it uses the .NET Framework that comes with Windows).
 5. **Apply changes.** FireSweep shows what it's about to do and asks before changing anything.
 
 ![Changes waiting to be applied](docs/screenshots/app-pending.png)
+
+### Several TVs at once
+
+Set up one TV the way you want, then tick the box next to each other TV in the list (or **Tick all**). **Apply** becomes **Apply to N TVs**: each ticked TV is backed up first, then set to match every switch, dock included, and only gets the changes it actually needs. Each TV keeps its own log and restore script.
+
+![Applying to two TVs at once](docs/screenshots/app-multi-tv.png)
 
 ## What it can change
 

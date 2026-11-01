@@ -93,9 +93,9 @@ class Tv
     public Dictionary<string, string> Secure = new Dictionary<string, string>();
     public string Accessibility = "null";
     public int LauncherVersion;
-    readonly Action<string> log;
+    public Action<string> Log;
 
-    public Tv(string addr, Action<string> log) { Addr = addr; this.log = log; }
+    public Tv(string addr, Action<string> log) { Addr = addr; Log = log; }
 
     public string Sh(string cmd) { return Adb.Shell(Addr, cmd); }
 
@@ -164,7 +164,7 @@ class Tv
 
     public void Apply(Item it, bool on)
     {
-        log((on ? "Turning on: " : "Undoing: ") + it.Label);
+        Log((on ? "Turning on: " : "Undoing: ") + it.Label);
         switch (it.Kind)
         {
             case Kind.Settings: if (on) SettingsOff(); else SettingsBack(); break;
@@ -183,14 +183,14 @@ class Tv
             if (r.Contains("new state: disabled"))
             {
                 if (!J.Disabled.Contains(p)) J.Disabled.Add(p);
-                log("  off  " + p);
+                Log("  off  " + p);
             }
             else
             {
                 // Fire OS refuses to disable a few protected packages; stop them running in the background instead.
                 Sh("cmd appops set " + p + " RUN_IN_BACKGROUND ignore");
                 J.AppOps.Add(p);
-                log("  " + p + " is protected by Fire OS, so it's blocked from running in the background instead");
+                Log("  " + p + " is protected by Fire OS, so it's blocked from running in the background instead");
             }
         }
     }
@@ -199,8 +199,8 @@ class Tv
     {
         foreach (var p in pkgs)
         {
-            if (J.AppOps.Remove(p)) { Sh("cmd appops set " + p + " RUN_IN_BACKGROUND default"); log("  background allowed again  " + p); }
-            if (Disabled.Contains(p)) { log("  on   " + p + "  " + Sh("pm enable " + p)); J.Disabled.Remove(p); }
+            if (J.AppOps.Remove(p)) { Sh("cmd appops set " + p + " RUN_IN_BACKGROUND default"); Log("  background allowed again  " + p); }
+            if (Disabled.Contains(p)) { Log("  on   " + p + "  " + Sh("pm enable " + p)); J.Disabled.Remove(p); }
         }
     }
 
@@ -217,17 +217,17 @@ class Tv
         if (old == value) return;
         if (J.Setting("secure", key) == null) J.Settings.Add(new[] { "secure", key, old });
         PutSetting(key, value);
-        log("  " + key + ": " + old + " -> " + value);
+        Log("  " + key + ": " + old + " -> " + value);
     }
 
     /// <summary>Puts a secure setting back to the value recorded before the tool changed it.</summary>
     void RevertSetting(string key)
     {
         var s = J.Setting("secure", key);
-        if (s == null) { log("  " + key + " was already set that way before; left as it is"); return; }
+        if (s == null) { Log("  " + key + " was already set that way before; left as it is"); return; }
         PutSetting(key, s[2]);
         J.Settings.Remove(s);
-        log("  " + key + " back to " + s[2]);
+        Log("  " + key + " back to " + s[2]);
     }
 
     void SettingsOff() { foreach (var s in Catalog.PrivacySettings) ChangeSetting(s.Key, s.Value); }
@@ -251,11 +251,11 @@ class Tv
         bool wasInstalled = LauncherVersion > 0;
         if (LauncherVersion < Catalog.LauncherVersion)
         {
-            log("  installing IsafellieOS (about 10 MB)...");
+            Log("  installing IsafellieOS (about 10 MB)...");
             string r = Adb.Run("-s " + Addr + " install -r \"" + Adb.Apk + "\"", 300000);
             if (!r.Contains("Success")) throw new InvalidOperationException("IsafellieOS didn't install: " + r);
             if (!wasInstalled) J.InstalledLauncher = true;
-            log("  installed");
+            Log("  installed");
         }
         // The Home-button redirect is an accessibility service. Switching it off and on again makes
         // Fire OS bind the newly installed copy.
@@ -264,7 +264,7 @@ class Tv
         SetAccessibilityServices(others);
         SetAccessibilityServices(others.Concat(new[] { Catalog.LauncherService }).ToList());
         ChangeSetting("accessibility_enabled", "1");
-        log("  Home button now opens IsafellieOS");
+        Log("  Home button now opens IsafellieOS");
     }
 
     void RemoveLauncher()
@@ -272,7 +272,7 @@ class Tv
         var others = OtherAccessibilityServices();
         SetAccessibilityServices(others);
         if (others.Count == 0 && J.Setting("secure", "accessibility_enabled") != null) RevertSetting("accessibility_enabled");
-        if (LauncherVersion > 0) log("  " + Sh("pm uninstall " + Catalog.LauncherPackage) + " (IsafellieOS removed)");
+        if (LauncherVersion > 0) Log("  " + Sh("pm uninstall " + Catalog.LauncherPackage) + " (IsafellieOS removed)");
         J.AccessibilityBefore = null;
         J.InstalledLauncher = false;
     }
@@ -288,7 +288,7 @@ class Tv
     public void SetDock(List<string> pkgs)
     {
         string r = Sh("am broadcast -n tv.isafellie.os/.DockReceiver -a tv.isafellie.os.DOCK --es dock '" + string.Join(",", pkgs) + "'");
-        log(r.Contains("data=") ? "Dock set: " + string.Join(", ", pkgs.Select(p => Catalog.AppName(p))) : "The dock didn't update: " + r);
+        Log(r.Contains("data=") ? "Dock set: " + string.Join(", ", pkgs.Select(p => Catalog.AppName(p))) : "The dock didn't update: " + r);
     }
 
     public void ShowLauncher() { Sh("am start -n tv.isafellie.os/.HomeActivity"); }
@@ -305,25 +305,25 @@ class Tv
     /// <summary>Undoes everything in the journal, in the same order as restore.ps1.</summary>
     public void RestoreAll()
     {
-        log("Restoring everything on " + Model + "...");
+        Log("Restoring everything on " + Model + "...");
         if (Accessibility.Contains(Catalog.LauncherService) || J.AccessibilityBefore != null || LauncherVersion > 0)
         {
             string before = J.AccessibilityBefore;
             if (before == null) SetAccessibilityServices(OtherAccessibilityServices());
             else if (before == "null" || before == "") Sh("settings delete secure enabled_accessibility_services");
             else Sh("settings put secure enabled_accessibility_services '" + before + "'");
-            if (LauncherVersion > 0) log("  " + Sh("pm uninstall " + Catalog.LauncherPackage) + " (IsafellieOS removed)");
+            if (LauncherVersion > 0) Log("  " + Sh("pm uninstall " + Catalog.LauncherPackage) + " (IsafellieOS removed)");
         }
-        foreach (var p in J.Disabled) log("  on   " + p + "  " + Sh("pm enable " + p));
-        foreach (var p in J.AppOps) { Sh("cmd appops set " + p + " RUN_IN_BACKGROUND default"); log("  background allowed again  " + p); }
+        foreach (var p in J.Disabled) Log("  on   " + p + "  " + Sh("pm enable " + p));
+        foreach (var p in J.AppOps) { Sh("cmd appops set " + p + " RUN_IN_BACKGROUND default"); Log("  background allowed again  " + p); }
         foreach (var s in J.Settings)
         {
             if (s[2] == "null") Sh("settings delete " + s[0] + " '" + s[1] + "'");
             else Sh("settings put " + s[0] + " '" + s[1] + "' '" + s[2] + "'");
-            log("  " + s[1] + " back to " + s[2]);
+            Log("  " + s[1] + " back to " + s[2]);
         }
         J.Archive();
-        log("Done. Restart the TV (Settings > My Fire TV > Restart) to finish.");
+        Log("Done. Restart the TV (Settings > My Fire TV > Restart) to finish.");
     }
 
     // ---- backup and the restore script ----
@@ -332,7 +332,7 @@ class Tv
     {
         string dir = Path.Combine(Folder, "backup-" + DateTime.Now.ToString("yyyy-MM-dd_HHmmss"));
         Directory.CreateDirectory(dir);
-        log("Backing up the TV's current state to " + dir);
+        Log("Backing up the TV's current state to " + dir);
         var files = new[]
         {
             new[] { "getprop.txt", "getprop" },
@@ -352,7 +352,7 @@ class Tv
         foreach (var f in files) File.WriteAllText(Path.Combine(dir, f[0]), Sh(f[1]) + "\n");
         // A screenshot is taken off-screen: nothing shows on the TV.
         Adb.ExecOutToFile(Addr, "screencap -p", Path.Combine(dir, "screen.png"));
-        log("  backup saved");
+        Log("  backup saved");
         return dir;
     }
 

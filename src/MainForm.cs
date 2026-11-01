@@ -14,8 +14,9 @@ using System.Windows.Forms;
 
 class MainForm : Form
 {
-    const string GuideUrl = "https://github.com/jrsamsanchez/firesweep/blob/main/docs/enable-adb.md";
+    const string GuideUrl = "https://github.com/jrsamsanchez/FireSweep/blob/main/docs/enable-adb.md";
     readonly string dataRoot;
+    readonly Image logo = LoadLogo();
     ListBox devices, appsList, dockList;
     TextBox ipBox, logBox;
     Button scanBtn, addBtn, openBtn, applyBtn, backupBtn, restoreBtn, folderBtn, addDock, removeDock, upDock, downDock;
@@ -36,7 +37,7 @@ class MainForm : Form
     class Device
     {
         public string Addr, Name = "Checking...";
-        public bool Ready;
+        public bool Ready, Ticked;  // Ticked: also gets the changes when Apply runs
         public override string ToString() { return Addr; }
     }
 
@@ -51,6 +52,12 @@ class MainForm : Form
     }
 
     static int S(int px) { return Theme.S(px); }
+
+    static Image LoadLogo()
+    {
+        var s = typeof(MainForm).Assembly.GetManifestResourceStream("logo.png");
+        return s == null ? null : Image.FromStream(s);
+    }
 
     public MainForm(string dataRoot)
     {
@@ -96,11 +103,8 @@ class MainForm : Form
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            var box = new Rectangle(0, S(6), S(40), S(40));
-            using (var path = Theme.Round(box, S(10)))
-            using (var b = new SolidBrush(Theme.Accent)) g.FillPath(b, path);
-            using (var f = Theme.Icons(15f))
-                TextRenderer.DrawText(g, Theme.IconTv, f, box, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            if (logo != null) g.DrawImage(logo, new Rectangle(0, S(5), S(42), S(42)));
             using (var f = Theme.Semibold(14f)) TextRenderer.DrawText(g, "FireSweep", f, new Point(S(52), S(4)), Theme.SideText);
             using (var f = Theme.UI(8.5f)) TextRenderer.DrawText(g, "Clean up the Fire TVs on your network", f, new Point(S(54), S(30)), Theme.SideMuted);
         };
@@ -131,6 +135,17 @@ class MainForm : Form
             DrawMode = DrawMode.OwnerDrawFixed, ItemHeight = S(60), IntegralHeight = false,
         };
         devices.DrawItem += DrawDevice;
+        devices.MouseDown += (s, e) =>
+        {
+            // The box at the right of a TV ticks it to get the same changes when Apply runs.
+            int i = devices.IndexFromPoint(e.Location);
+            if (i < 0 || e.X < devices.Width - S(44)) return;
+            var d = (Device)devices.Items[i];
+            if (!d.Ready || IsCurrent(d) || busy) return;
+            d.Ticked = !d.Ticked;
+            devices.Invalidate();
+            UpdateButtons();
+        };
         devices.DoubleClick += (s, e) => OpenSelected();
         devices.SelectedIndexChanged += (s, e) => { devices.Invalidate(); UpdateButtons(); };
 
@@ -146,7 +161,24 @@ class MainForm : Form
 
         side.Controls.Add(devices);
         side.Controls.Add(Spacer(8, Theme.Side));
-        side.Controls.Add(Caption("TVs found", Theme.SideMuted));
+        var listHead = new Panel { Dock = DockStyle.Top, Height = S(22), BackColor = Theme.Side };
+        var tickAll = new LinkLabel
+        {
+            Dock = DockStyle.Right, AutoSize = true, Text = "Tick all", Font = Theme.UI(8.5f),
+            LinkColor = Theme.Accent, ActiveLinkColor = Theme.AccentDark, VisitedLinkColor = Theme.Accent, LinkBehavior = LinkBehavior.HoverUnderline,
+        };
+        tickAll.LinkClicked += (s, e) =>
+        {
+            var others = devices.Items.Cast<Device>().Where(d => d.Ready && !IsCurrent(d)).ToList();
+            bool tick = others.Any(d => !d.Ticked);
+            foreach (var d in others) d.Ticked = tick;
+            tickAll.Text = tick ? "Untick all" : "Tick all";
+            devices.Invalidate();
+            UpdateButtons();
+        };
+        listHead.Controls.Add(Caption("TVs found", Theme.SideMuted));
+        listHead.Controls.Add(tickAll);
+        side.Controls.Add(listHead);
         side.Controls.Add(Spacer(18, Theme.Side));
         side.Controls.Add(ipRow);
         side.Controls.Add(Caption("Or type its IP address", Theme.SideMuted));
@@ -188,9 +220,28 @@ class MainForm : Form
                 TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter);
         using (var b = new SolidBrush(dot)) g.FillEllipse(b, r.X + S(32), r.Y + r.Height / 2 + S(4), S(8), S(8));
         using (var f = Theme.Semibold(10f))
-            TextRenderer.DrawText(g, d.Name, f, new Rectangle(r.X + S(50), r.Y + S(9), r.Width - S(56), S(22)), Theme.SideText, TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(g, d.Name, f, new Rectangle(r.X + S(50), r.Y + S(9), r.Width - S(96), S(22)), Theme.SideText, TextFormatFlags.EndEllipsis);
         using (var f = Theme.UI(8.5f))
-            TextRenderer.DrawText(g, d.Addr + (current ? "   •   connected" : ""), f, new Rectangle(r.X + S(50), r.Y + S(30), r.Width - S(56), S(20)), Theme.SideMuted, TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(g, d.Addr + (current ? "   •   connected" : ""), f, new Rectangle(r.X + S(50), r.Y + S(30), r.Width - S(96), S(20)), Theme.SideMuted, TextFormatFlags.EndEllipsis);
+
+        // Tick box: the connected TV always gets the changes; others when ticked.
+        if (!d.Ready) return;
+        bool on = current || d.Ticked;
+        var box = new Rectangle(r.Right - S(34), r.Y + (r.Height - S(20)) / 2, S(20), S(20));
+        using (var path = Theme.Round(box, S(5)))
+        {
+            if (on) using (var b = new SolidBrush(current ? Theme.SideMuted : Theme.Accent)) g.FillPath(b, path);
+            else using (var p = new Pen(Theme.SideMuted, S(2) / 1.5f)) g.DrawPath(p, path);
+        }
+        if (on) using (var f = Theme.Icons(9f))
+            TextRenderer.DrawText(g, Theme.IconCheck, f, box, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+    }
+
+    bool IsCurrent(Device d) { return tv != null && tv.Addr == d.Addr; }
+
+    IEnumerable<Device> TickedOthers()
+    {
+        return devices.Items.Cast<Device>().Where(d => d.Ready && d.Ticked && !IsCurrent(d));
     }
 
     // ---- main area ----
@@ -397,12 +448,15 @@ class MainForm : Form
 
     // ---- logging and busy state ----
 
-    void Log(string line)
+    void Log(string line) { LogFor(tv, line); }
+
+    /// <summary>Shows a line in the log pane and adds it to that TV's activity.log.</summary>
+    void LogFor(Tv t, string line)
     {
-        if (InvokeRequired) { BeginInvoke(new Action<string>(Log), line); return; }
-        logBox.AppendText(line + "\r\n");
-        if (tv != null && tv.Folder != null)
-            try { File.AppendAllText(Path.Combine(tv.Folder, "activity.log"), DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss  ") + line + "\r\n"); } catch { }
+        if (InvokeRequired) { BeginInvoke(new Action<Tv, string>(LogFor), t, line); return; }
+        logBox.AppendText((t != null && t != tv ? "[" + t.Model + " " + t.Addr + "] " : "") + line + "\r\n");
+        if (t != null && t.Folder != null)
+            try { File.AppendAllText(Path.Combine(t.Folder, "activity.log"), DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss  ") + line + "\r\n"); } catch { }
     }
 
     void SetBusy(bool b)
@@ -420,10 +474,14 @@ class MainForm : Form
         openBtn.Enabled = !busy && devices.SelectedItem != null;
         int pending = PendingChanges().Count();
         bool dockPending = dockChanged && LauncherWanted();
-        applyBtn.Enabled = hasTv && (pending > 0 || dockPending);
-        pendingLabel.Text = tv == null ? "" : pending == 0 && !dockPending ? "No changes waiting"
+        int others = TickedOthers().Count();
+        applyBtn.Enabled = hasTv && (pending > 0 || dockPending || others > 0);
+        applyBtn.Text = others == 0 ? "Apply changes" : "Apply to " + (others + 1) + " TVs";
+        applyBtn.Width = TextRenderer.MeasureText(applyBtn.Text, applyBtn.Font).Width + S(80);
+        pendingLabel.Text = tv == null ? "" : pending == 0 && !dockPending ? "No changes waiting on this TV"
             : pending == 0 ? "Dock change waiting"
             : pending + (pending == 1 ? " change waiting" : " changes waiting") + (dockPending ? ", plus the dock" : "");
+        if (tv != null && others > 0) pendingLabel.Text += ". Ticked TVs will be set to match.";
         backupBtn.Enabled = folderBtn.Enabled = restoreBtn.Enabled = hasTv;
         addDock.Enabled = hasTv && appsList.SelectedItem != null;
         removeDock.Enabled = hasTv && dockList.SelectedItem != null;
@@ -751,6 +809,9 @@ class MainForm : Form
             changesList.AutoScrollPosition = new Point(0, 0);
             ShowTab(1); Snap(dir, name + "-2-dock");
         }
+        // Tick the other TVs to show the multi-TV state (nothing is applied).
+        foreach (var d in devices.Items.Cast<Device>()) d.Ticked = d.Ready && !IsCurrent(d);
+        devices.Invalidate(); ShowTab(0); UpdateButtons(); Snap(dir, "4-multi");
         File.WriteAllText(Path.Combine(dir, "log.txt"), logBox.Text);
         Close();
     }
@@ -823,29 +884,68 @@ class MainForm : Form
         var pending = PendingChanges().ToList();
         var dock = dockList.Items.Cast<AppEntry>().Select(e => e.Pkg).ToList();
         bool sendDock = LauncherWanted() && (dockChanged || pending.Any(r => r.Item.Kind == Kind.Launcher));
+        var others = TickedOthers().ToList();
         var lines = pending.Select(r => (r.Toggle.Checked ? "Do:  " : "Undo:  ") + r.Item.Label).ToList();
         if (sendDock) lines.Add("Set the dock: " + string.Join(", ", dock.Select(p => Catalog.AppName(p))));
-        if (lines.Count == 0) return;
-        if (MessageBox.Show(this, string.Join("\n", lines) + "\n\nEverything here can be undone later. Go ahead?",
-                "Apply to " + tv.Model, MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK) return;
+        if (lines.Count == 0 && others.Count == 0) return;
+        string text = lines.Count == 0 ? "Nothing to change on " + tv.Model + "." : "On " + tv.Model + " (" + tv.Addr + "):\n" + string.Join("\n", lines);
+        if (others.Count > 0)
+            text += "\n\nAlso set these TVs to match every switch here" + (LauncherWanted() ? ", dock included" : "") + ":\n" +
+                    string.Join("\n", others.Select(d => d.Name + " (" + d.Addr + ")")) +
+                    "\nEach one is backed up first and only gets the changes it needs.";
+        if (MessageBox.Show(this, text + "\n\nEverything here can be undone later. Go ahead?",
+                others.Count == 0 ? "Apply to " + tv.Model : "Apply to " + (others.Count + 1) + " TVs",
+                MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK) return;
 
         var work = pending.Select(r => new KeyValuePair<Item, bool>(r.Item, r.Toggle.Checked)).ToList();
+        // What the ticked TVs should end up like: every switch that applies to the connected TV.
+        var wanted = rows.Where(r => r.Available).Select(r => new KeyValuePair<Item, bool>(r.Item, r.Toggle.Checked)).ToList();
+        bool launcher = LauncherWanted();
         bool showHome = work.Any(w => w.Key.Kind == Kind.Launcher && w.Value);
         var t = tv;
+        var addrs = others.Select(d => d.Addr).ToList();
         Run("apply the changes", () =>
         {
-            if (!t.HasBackup) t.Backup();
-            foreach (var w in work)
+            ApplyTo(t, work, sendDock ? dock : null, showHome, t.Log);
+            foreach (var addr in addrs)
             {
-                t.Apply(w.Key, w.Value);
-                if (w.Key.Kind == Kind.Launcher) t.Refresh();
+                var other = new Tv(addr, null);
+                other.Log = line => LogFor(other, line);
+                try
+                {
+                    Adb.Run("connect " + addr, 10000);
+                    other.Open(dataRoot);
+                    other.Refresh();
+                    var needed = wanted.Where(w =>
+                    {
+                        bool? on = other.IsOn(w.Key);
+                        if (on == null) return false;
+                        return on.Value != w.Value || (w.Key.Kind == Kind.Launcher && w.Value && other.LauncherVersion < Catalog.LauncherVersion);
+                    }).ToList();
+                    bool home = needed.Any(w => w.Key.Kind == Kind.Launcher && w.Value);
+                    if (needed.Count == 0 && !launcher) { other.Log("Already matches; nothing to change."); continue; }
+                    ApplyTo(other, needed, launcher ? dock : null, home, other.Log);
+                }
+                catch (Exception ex) { LogFor(other, "Couldn't apply to " + addr + ": " + ex.Message); }
             }
-            if (sendDock) t.SetDock(dock);
-            if (showHome) t.ShowLauncher();
-            t.WriteRestoreScript();
             Log("All done. To undo, switch it back off and apply again, or use Restore everything (or \"Restore this TV.cmd\" in the TV's folder).");
         }, refresh: true);
         dockChanged = false;
+    }
+
+    /// <summary>Backs a TV up if needed, makes the changes, sets the dock and rewrites its restore script.</summary>
+    static void ApplyTo(Tv t, List<KeyValuePair<Item, bool>> work, List<string> dock, bool showHome, Action<string> log)
+    {
+        if (!t.HasBackup) t.Backup();
+        foreach (var w in work)
+        {
+            t.Apply(w.Key, w.Value);
+            if (w.Key.Kind == Kind.Launcher) t.Refresh();
+        }
+        if (dock != null && t.LauncherVersion >= 2) t.SetDock(dock);
+        if (showHome) t.ShowLauncher();
+        t.WriteRestoreScript();
+        log("Done with " + t.Model + ".");
     }
 
     void RestoreAll()

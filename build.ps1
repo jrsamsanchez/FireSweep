@@ -17,7 +17,8 @@ if (-not (Test-Path "$adb\adb.exe")) {
     }
 }
 
-$resources = @("$adb\adb.exe", "$adb\AdbWinApi.dll", "$adb\AdbWinUsbApi.dll", $apk) | ForEach-Object {
+if (-not (Test-Path "$here\logo.png")) { & "$here\make-icon.ps1" }
+$resources = @("$adb\adb.exe", "$adb\AdbWinApi.dll", "$adb\AdbWinUsbApi.dll", $apk, "$here\logo.png") | ForEach-Object {
     if (-not (Test-Path $_)) { throw "Missing $_" }
     "/resource:$_,$(Split-Path $_ -Leaf)"
 }
