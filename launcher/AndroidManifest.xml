@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="tv.isafellie.os"
+    android:versionCode="2"
+    android:versionName="1.1">
+
+    <uses-sdk android:minSdkVersion="25" android:targetSdkVersion="28" />
+
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <application
+        android:label="IsafellieOS"
+        android:icon="@drawable/icon"
+        android:banner="@drawable/banner"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+        android:largeHeap="false"
+        android:allowBackup="false">
+
+        <activity
+            android:name=".HomeActivity"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:clearTaskOnLaunch="true"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".AppsActivity"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape" />
+
+        <activity
+            android:name=".SettingsActivity"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape" />
+
+        <service
+            android:name=".HomeRedirectService"
+            android:label="IsafellieOS Home button"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/redirect_service" />
+        </service>
+        <receiver
+            android:name=".DockReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="tv.isafellie.os.DOCK" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

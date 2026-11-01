@@ -1,0 +1,7 @@
+FireSweep.exe bundles, unmodified, these files from Google's Android SDK Platform-Tools:
+adb.exe, AdbWinApi.dll, AdbWinUsbApi.dll
+
+adb is part of the Android Open Source Project, licensed under the Apache License, Version 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+Source: https://android.googlesource.com/platform/packages/modules/adb/
+Downloads: https://developer.android.com/tools/releases/platform-tools

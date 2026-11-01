@@ -1,0 +1,12 @@
+# Built program and build output
+FireSweep.exe
+build/
+launcher/build/
+
+# Per-TV backups, logs and restore scripts (serial numbers, settings)
+TVs/
+
+# Signing keys never leave this PC
+*.keystore
+*.jks
+*.idsig
