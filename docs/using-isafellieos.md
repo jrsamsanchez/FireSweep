@@ -23,9 +23,13 @@ Use this for profiles, Alexa features, Live TV, or anything else that's only on 
 
    ![Step 1: open All apps](screenshots/tv-step1-all-apps.jpg)
 
-2. Scroll down to the end of the list and choose the last tile, **Amazon Home (profiles)**.
+2. Scroll down to the end of the list.
 
    ![Step 2: scroll to the end of the apps list](screenshots/tv-step2-apps-list.jpg)
+
+3. Choose the last tile, **Amazon Home (profiles)**.
+
+   ![Step 3: choose Amazon Home (profiles)](screenshots/tv-step3-amazon-home.jpg)
 
 Amazon's home opens and stays put while you use it. As soon as you open an app, or press **Home**, you're back on IsafellieOS.
 
