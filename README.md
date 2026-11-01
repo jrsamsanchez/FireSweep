@@ -9,6 +9,7 @@
 - **One file, nothing to install.** `FireSweep.exe` has adb and the home screen built in.
 - **Finds your TVs.** It scans your network for Fire TVs with ADB debugging on, or you can type a TV's IP address.
 - **Several TVs in one go.** Tick other TVs in the list and one Apply sets them all to match.
+- **Shows you the TV.** A live picture of the TV's screen sits under the TV list, and the dock tab previews the new home screen as you pick apps.
 - **Backs up first.** Before the first change it saves each TV's package list, settings and a screenshot.
 - **Switches off, never uninstalls.** Amazon apps are disabled, not removed. Untick anything to undo it.
 - **Per-TV restore.** Each TV gets a folder with a change log and a double-click **Restore this TV.cmd**.
@@ -50,7 +51,7 @@ Prefer to do it yourself? [Doing it by hand](docs/manual-steps.md) lists every a
 
 ## The IsafellieOS home screen
 
-A quiet home screen: a slowly drifting nature wallpaper, a clock, and a dock of the apps you choose. Pick and order the dock apps on FireSweep's **Home screen dock** tab. You can also change them on the TV by pressing **Menu** on an app.
+A quiet home screen: a slowly drifting nature wallpaper, a clock, and a dock of the apps you choose. Pick and order the dock apps on FireSweep's **Home screen dock** tab; a preview underneath shows the result as you go. You can also change them on the TV by pressing **Menu** on an app.
 
 ![IsafellieOS on a Fire TV](docs/screenshots/tv-isafellieos-home.jpg)
 
@@ -66,7 +67,7 @@ Fire OS 7.7 doesn't let another app become the default home screen. IsafellieOS 
 - **Undo everything:** choose **Restore everything**. It turns every Amazon app back on, puts the settings back, and removes IsafellieOS.
 - **Without the app:** double-click **Restore this TV.cmd** in the TV's folder (**TV folder** button).
 
-Each TV's folder sits next to `FireSweep.exe` in `TVs\<model>_<serial>` and holds:
+Each TV's folder is `Documents\FireSweep\TVs\<model>_<serial>` (the same wherever you run `FireSweep.exe` from) and holds:
 
 | File | What it is |
 |---|---|

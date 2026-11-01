@@ -31,23 +31,14 @@ static class Program
         Application.Run(new MainForm(DataRoot()));
     }
 
-    /// <summary>Each TV's backups, logs and restore script go in a "TVs" folder next to the program.</summary>
+    /// <summary>
+    /// Each TV's backups, logs and restore script go in Documents\FireSweep\TVs, the same place
+    /// wherever the program is run from, so a copy of the exe never loses track of earlier changes.
+    /// </summary>
     static string DataRoot()
     {
-        string root = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "TVs");
-        try
-        {
-            Directory.CreateDirectory(root);
-            string probe = Path.Combine(root, ".write-test");
-            File.WriteAllText(probe, "");
-            File.Delete(probe);
-            return root;
-        }
-        catch
-        {
-            root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "FireSweep");
-            Directory.CreateDirectory(root);
-            return root;
-        }
+        string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "FireSweep", "TVs");
+        Directory.CreateDirectory(root);
+        return root;
     }
 }

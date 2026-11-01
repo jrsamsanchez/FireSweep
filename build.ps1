@@ -24,6 +24,8 @@ $resources = @("$adb\adb.exe", "$adb\AdbWinApi.dll", "$adb\AdbWinUsbApi.dll", $a
     if (-not (Test-Path $_)) { throw "Missing $_" }
     "/resource:$_,$(Split-Path $_ -Leaf)"
 }
+# The home screen preview draws on one of the launcher's wallpapers.
+$resources += "/resource:$here\launcher\assets\wallpapers\11.jpg,wallpaper.jpg"
 $icon = Join-Path $here 'icon.ico'
 if (-not (Test-Path $icon)) { & "$here\make-icon.ps1" }
 $sources = Get-ChildItem "$here\src" -Filter *.cs | ForEach-Object FullName

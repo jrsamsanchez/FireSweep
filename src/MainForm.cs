@@ -21,6 +21,8 @@ class MainForm : Form
     TextBox ipBox, logBox;
     Button scanBtn, addBtn, openBtn, applyBtn, backupBtn, restoreBtn, folderBtn, addDock, removeDock, upDock, downDock;
     Label tvTitle, tvSub, dockNote, pendingLabel;
+    PictureBox screenBox, homePreview;
+    LinkLabel screenRefresh;
     FlowLayoutPanel changesList;
     Panel changesPage, dockPage, tabBar;
     int tab;
@@ -192,6 +194,24 @@ class MainForm : Form
             LinkColor = Theme.Accent, ActiveLinkColor = Theme.AccentDark, VisitedLinkColor = Theme.Accent, LinkBehavior = LinkBehavior.HoverUnderline,
         };
         guide.LinkClicked += (s, e) => Process.Start(GuideUrl);
+
+        // A live picture of the connected TV's screen, under the TV list.
+        var screenCard = new Panel { Dock = DockStyle.Bottom, Height = S(190), BackColor = Theme.Side, Visible = false, Padding = new Padding(0, S(8), 0, 0) };
+        screenBox = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Theme.Console, Cursor = Cursors.Hand };
+        screenBox.Click += (s, e) => Preview.ShowLarge(this, screenBox.Image, tv == null ? "TV screen" : tv.Maker + " " + tv.Model + " screen");
+        new ToolTip().SetToolTip(screenBox, "What the TV shows right now. Click to enlarge.");
+        var screenHead = new Panel { Dock = DockStyle.Top, Height = S(24), BackColor = Theme.Side };
+        screenRefresh = new LinkLabel
+        {
+            Dock = DockStyle.Right, AutoSize = true, Text = "Refresh", Font = Theme.UI(8.5f),
+            LinkColor = Theme.Accent, ActiveLinkColor = Theme.AccentDark, VisitedLinkColor = Theme.Accent, LinkBehavior = LinkBehavior.HoverUnderline,
+        };
+        screenRefresh.LinkClicked += (s, e) => RefreshScreen();
+        screenHead.Controls.Add(Caption("On the TV now", Theme.SideMuted));
+        screenHead.Controls.Add(screenRefresh);
+        screenCard.Controls.Add(screenBox);
+        screenCard.Controls.Add(screenHead);
+        side.Controls.Add(screenCard);
         side.Controls.Add(guide);
         side.Controls.Add(help);
         side.Controls.Add(openBtn);
@@ -396,9 +416,16 @@ class MainForm : Form
         }
         grid.Controls.Add(mid, 1, 0);
 
-        dockNote = new Label { Dock = DockStyle.Bottom, Height = S(52), ForeColor = Theme.Muted, Padding = new Padding(0, S(10), 0, 0) };
+        // Below the lists: how the home screen will look with this dock.
+        var previewRow = new Panel { Dock = DockStyle.Bottom, Height = S(236), BackColor = Theme.Bg, Padding = new Padding(0, S(14), 0, 0) };
+        homePreview = new PictureBox { Dock = DockStyle.Left, Width = S(392), SizeMode = PictureBoxSizeMode.Zoom, BackColor = Theme.Console, Cursor = Cursors.Hand };
+        homePreview.Click += (s, e) => Preview.ShowLarge(this, Preview.Home(CurrentDock(), 1600), "IsafellieOS preview");
+        new ToolTip().SetToolTip(homePreview, "How IsafellieOS will look with this dock. Click to enlarge.");
+        dockNote = new Label { Dock = DockStyle.Fill, ForeColor = Theme.Muted, Padding = new Padding(S(18), S(4), 0, 0) };
+        previewRow.Controls.Add(dockNote);
+        previewRow.Controls.Add(homePreview);
         page.Controls.Add(grid);
-        page.Controls.Add(dockNote);
+        page.Controls.Add(previewRow);
         return page;
     }
 
@@ -496,7 +523,7 @@ class MainForm : Form
         try
         {
             await Task.Run(work);
-            if (refresh && tv != null) { await Task.Run(() => tv.Refresh()); ShowTv(); }
+            if (refresh && tv != null) { await Task.Run(() => tv.Refresh()); ShowTv(); RefreshScreen(); }
         }
         catch (Exception ex) { Log("Couldn't " + what + ": " + ex.Message); }
         finally { SetBusy(false); }
@@ -646,6 +673,7 @@ class MainForm : Form
             var dock = await Task.Run(() => t.GetDock());
             ShowTv();
             ShowDock(apps, dock);
+            RefreshScreen();
         }
         catch (Exception ex)
         {
@@ -793,6 +821,7 @@ class MainForm : Form
             if (only != null && !d.Addr.StartsWith(only)) continue;
             devices.SelectedItem = d;
             await OpenSelectedAsync();
+            await RefreshScreenAsync();
             string name = d.Addr.Replace(":", "_");
             // Hide the serial number in pictures meant for the README.
             if (Environment.GetEnvironmentVariable("FIRESWEEP_SELFTEST_HIDE") != null)
@@ -842,10 +871,37 @@ class MainForm : Form
             ? "This is the dock IsafellieOS shows now. Changes go to the TV when you choose Apply changes."
             : "The dock is sent to the TV when IsafellieOS is installed or updated (turn on \"Use IsafellieOS as the home screen\", then Apply changes). " +
               "It can also be changed from the TV: press Menu on an app.";
+        dockNote.Text += "\n\nLeft: a preview of IsafellieOS with this dock. Click it to enlarge. On the TV, the tiles use each app's own banner.";
+        UpdatePreview();
         UpdateButtons();
     }
 
-    void DockEdited() { dockChanged = true; dockList.Invalidate(); UpdateButtons(); }
+    void DockEdited() { dockChanged = true; dockList.Invalidate(); UpdatePreview(); UpdateButtons(); }
+
+    List<string> CurrentDock() { return dockList.Items.Cast<AppEntry>().Select(e => e.Pkg).ToList(); }
+
+    void UpdatePreview()
+    {
+        var old = homePreview.Image;
+        homePreview.Image = Preview.Home(CurrentDock(), S(784));
+        if (old != null) old.Dispose();
+    }
+
+    void RefreshScreen() { var t = RefreshScreenAsync(); }
+
+    async Task RefreshScreenAsync()
+    {
+        if (tv == null) return;
+        var t = tv;
+        screenBox.Parent.Visible = true;
+        screenRefresh.Text = "Updating...";
+        var img = await Task.Run(() => Preview.TvScreen(t.Addr));
+        if (t != tv) { if (img != null) img.Dispose(); return; }
+        var old = screenBox.Image;
+        screenBox.Image = img;
+        if (old != null) old.Dispose();
+        screenRefresh.Text = img == null ? "Couldn't get it. Retry" : "Refresh";
+    }
 
     void DockAdd()
     {
