@@ -426,7 +426,41 @@ class MainForm : Form
         previewRow.Controls.Add(homePreview);
         page.Controls.Add(grid);
         page.Controls.Add(previewRow);
+        page.Controls.Add(BuildDockBanner());
         return page;
+    }
+
+    Panel dockBanner;
+
+    /// <summary>
+    /// Shown on the dock tab until "Use IsafellieOS as the home screen" is on, because the dock
+    /// only reaches the TV with IsafellieOS.
+    /// </summary>
+    Control BuildDockBanner()
+    {
+        dockBanner = new Panel { Dock = DockStyle.Top, Height = S(58), BackColor = Theme.Bg, Padding = new Padding(0, 0, 0, S(10)) };
+        var box = new Panel { Dock = DockStyle.Fill, BackColor = Theme.AccentSoft, Padding = new Padding(S(14), 0, S(10), 0) };
+        var go = Theme.Button(null, "Turn it on", Theme.Style.Primary, (s, e) =>
+        {
+            var row = rows.FirstOrDefault(r => r.Item.Kind == Kind.Launcher && r.Available);
+            if (row != null && row.Toggle.Enabled) row.Toggle.Checked = true;
+            ShowTab(0);
+            if (row != null) changesList.ScrollControlIntoView(row.Panel);
+        });
+        go.Dock = DockStyle.Right;
+        go.Height = S(34);
+        var goWrap = new Panel { Dock = DockStyle.Right, Width = go.Width, BackColor = Theme.AccentSoft, Padding = new Padding(0, S(7), 0, S(7)) };
+        goWrap.Controls.Add(go);
+        go.Dock = DockStyle.Fill;
+        var text = new Label
+        {
+            Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.AccentDark, Font = Theme.Semibold(9.5f),
+            Text = "First turn on \"Use IsafellieOS as the home screen\" on the Changes tab. The dock only goes to the TV with IsafellieOS.",
+        };
+        box.Controls.Add(text);
+        box.Controls.Add(goWrap);
+        dockBanner.Controls.Add(box);
+        return dockBanner;
     }
 
     Control ListCard(string title, ListBox list)
@@ -514,6 +548,7 @@ class MainForm : Form
         removeDock.Enabled = hasTv && dockList.SelectedItem != null;
         upDock.Enabled = hasTv && dockList.SelectedIndex > 0;
         downDock.Enabled = hasTv && dockList.SelectedIndex >= 0 && dockList.SelectedIndex < dockList.Items.Count - 1;
+        dockBanner.Visible = tv != null && !LauncherWanted();
     }
 
     /// <summary>Runs work off the UI thread, logging any error, then refreshes the TV's state.</summary>
