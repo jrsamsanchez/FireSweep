@@ -2,7 +2,7 @@
 
 FireSweep talks to the TV over your home network using ADB, Android's debugging connection. It's off by default. Turning it on takes about a minute with the remote, and you only do it once per TV.
 
-These steps are for Fire TV Edition smart TVs and Fire TV Sticks/Cubes on Fire OS 7. On newer Fire OS 8 devices, **My Fire TV** is called **Device & Software**. Everything else is the same.
+These steps are for Fire TV Edition smart TVs and Fire TV Sticks/Cubes on Fire OS 7 and 8. On some devices, including recent Fire TV Edition TVs, **My Fire TV** is called **Device & Software**. Everything else is the same.
 
 ## 1. Unlock Developer options
 

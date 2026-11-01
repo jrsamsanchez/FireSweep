@@ -156,7 +156,7 @@ class MainForm : Form
         var help = new Label
         {
             Dock = DockStyle.Bottom, Height = S(150), ForeColor = Theme.SideMuted, Font = Theme.UI(8.5f), Padding = new Padding(0, S(12), 0, 0),
-            Text = "Don't see your TV? On the TV, turn on Settings > My Fire TV > Developer options > ADB debugging. " +
+            Text = "Don't see your TV? On the TV, turn on Settings > My Fire TV (or Device & Software) > Developer options > ADB debugging. " +
                    "No Developer options? Open Settings > My Fire TV > About and press Select on the TV's name 7 times.\n\n" +
                    "The first time you connect, the TV asks to allow this PC. Tick \"Always allow\" and choose OK.",
         };
