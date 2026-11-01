@@ -59,6 +59,8 @@ A quiet home screen: a slowly drifting nature wallpaper, a clock, and a dock of 
 |---|---|
 | ![Dock picker](docs/screenshots/app-dock.png) | ![Dock edit menu on the TV](docs/screenshots/tv-dock-menu.jpg) |
 
+**Need Amazon's home back for a moment** (profiles, Live TV)? Open **All apps** and choose **Amazon Home (profiles)** at the end of the list. [Using IsafellieOS](docs/using-isafellieos.md) shows every step with screenshots, plus the remote's shortcuts.
+
 Fire OS 7.7 doesn't let another app become the default home screen. IsafellieOS works around this with an accessibility service that opens it whenever the Home button is pressed or Amazon's home appears. You may see Amazon's home flash for a moment, and a future Fire OS update could block the workaround. **Restore everything** removes it either way.
 
 ## Undoing changes
