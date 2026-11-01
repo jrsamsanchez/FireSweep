@@ -10,3 +10,4 @@ TVs/
 *.keystore
 *.jks
 *.idsig
+dist/
