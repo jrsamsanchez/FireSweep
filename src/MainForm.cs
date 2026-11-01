@@ -311,9 +311,15 @@ class MainForm : Form
         return content;
     }
 
+    string[] TabNames()
+    {
+        bool locked = dockLocked;
+        return new[] { "Changes", locked ? "Home screen dock (needs IsafellieOS)" : "Home screen dock" };
+    }
+
     Rectangle TabRect(int i)
     {
-        string[] names = { "Changes", "Home screen dock" };
+        string[] names = TabNames();
         int x = 0;
         using (var f = Theme.Semibold(10.5f))
             for (int j = 0; j < i; j++) x += TextRenderer.MeasureText(names[j], f).Width + S(30);
@@ -324,7 +330,7 @@ class MainForm : Form
 
     void PaintTabs(object sender, PaintEventArgs e)
     {
-        string[] names = { "Changes", "Home screen dock" };
+        string[] names = TabNames();
         var g = e.Graphics;
         using (var p = new Pen(Theme.Border)) g.DrawLine(p, 0, tabBar.Height - 1, tabBar.Width, tabBar.Height - 1);
         using (var f = Theme.Semibold(10.5f))
@@ -431,35 +437,43 @@ class MainForm : Form
     }
 
     Panel dockBanner;
+    bool dockLocked;
 
     /// <summary>
-    /// Shown on the dock tab until "Use IsafellieOS as the home screen" is on, because the dock
-    /// only reaches the TV with IsafellieOS.
+    /// Covers the whole dock tab while "Use IsafellieOS as the home screen" is off: the dock is
+    /// IsafellieOS's, so there's nothing to arrange without it.
     /// </summary>
     Control BuildDockBanner()
     {
-        dockBanner = new Panel { Dock = DockStyle.Top, Height = S(58), BackColor = Theme.Bg, Padding = new Padding(0, 0, 0, S(10)) };
-        var box = new Panel { Dock = DockStyle.Fill, BackColor = Theme.AccentSoft, Padding = new Padding(S(14), 0, S(10), 0) };
-        var go = Theme.Button(null, "Turn it on", Theme.Style.Primary, (s, e) =>
+        dockBanner = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Bg, Visible = false };
+        var card = CardPanel();
+        card.Size = new Size(S(600), S(300));
+        card.Padding = new Padding(S(36), S(30), S(36), S(28));
+        dockBanner.Resize += (s, e) => card.Location = new Point(Math.Max(0, (dockBanner.Width - card.Width) / 2), Math.Max(0, (dockBanner.Height - card.Height) / 3));
+
+        var icon = new Label { Dock = DockStyle.Top, Height = S(44), Text = Theme.IconTv, Font = Theme.Icons(24f), ForeColor = Theme.Accent, TextAlign = ContentAlignment.MiddleLeft };
+        var head = new Label { Dock = DockStyle.Top, Height = S(40), Text = "Turn on IsafellieOS first", Font = Theme.Semibold(15f), ForeColor = Theme.Text, TextAlign = ContentAlignment.MiddleLeft };
+        var body = new Label
+        {
+            Dock = DockStyle.Top, Height = S(90), ForeColor = Theme.Muted, Font = Theme.UI(10f),
+            Text = "The dock is part of the IsafellieOS home screen, so it only works when \"Use IsafellieOS as the home screen\" " +
+                   "is switched on in the Changes tab. Turn it on here, pick your dock apps, then choose Apply changes.",
+        };
+        var go = Theme.Button(Theme.IconCheck, "Turn on IsafellieOS", Theme.Style.Primary, (s, e) =>
         {
             var row = rows.FirstOrDefault(r => r.Item.Kind == Kind.Launcher && r.Available);
             if (row != null && row.Toggle.Enabled) row.Toggle.Checked = true;
-            ShowTab(0);
-            if (row != null) changesList.ScrollControlIntoView(row.Panel);
+            else ShowTab(0);
         });
-        go.Dock = DockStyle.Right;
-        go.Height = S(34);
-        var goWrap = new Panel { Dock = DockStyle.Right, Width = go.Width, BackColor = Theme.AccentSoft, Padding = new Padding(0, S(7), 0, S(7)) };
-        goWrap.Controls.Add(go);
-        go.Dock = DockStyle.Fill;
-        var text = new Label
-        {
-            Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.AccentDark, Font = Theme.Semibold(9.5f),
-            Text = "First turn on \"Use IsafellieOS as the home screen\" on the Changes tab. The dock only goes to the TV with IsafellieOS.",
-        };
-        box.Controls.Add(text);
-        box.Controls.Add(goWrap);
-        dockBanner.Controls.Add(box);
+        var goRow = new Panel { Dock = DockStyle.Top, Height = S(46), BackColor = Theme.Card };
+        go.Dock = DockStyle.Left;
+        goRow.Controls.Add(go);
+
+        card.Controls.Add(goRow);
+        card.Controls.Add(body);
+        card.Controls.Add(head);
+        card.Controls.Add(icon);
+        dockBanner.Controls.Add(card);
         return dockBanner;
     }
 
@@ -548,7 +562,14 @@ class MainForm : Form
         removeDock.Enabled = hasTv && dockList.SelectedItem != null;
         upDock.Enabled = hasTv && dockList.SelectedIndex > 0;
         downDock.Enabled = hasTv && dockList.SelectedIndex >= 0 && dockList.SelectedIndex < dockList.Items.Count - 1;
-        dockBanner.Visible = tv != null && !LauncherWanted();
+        bool locked = tv != null && !LauncherWanted();
+        if (dockLocked != locked)
+        {
+            dockLocked = locked;
+            // Swap the lists and preview for the "turn it on first" card, so nothing on the tab can be edited.
+            foreach (Control ctl in dockPage.Controls) ctl.Visible = (ctl == dockBanner) == locked;
+            tabBar.Invalidate();
+        }
     }
 
     /// <summary>Runs work off the UI thread, logging any error, then refreshes the TV's state.</summary>
@@ -872,6 +893,9 @@ class MainForm : Form
             foreach (var r in demo) r.Toggle.Checked = !r.Toggle.Checked;
             changesList.AutoScrollPosition = new Point(0, 0);
             ShowTab(1); Snap(dir, name + "-2-dock");
+            // And the dock tab as it looks with IsafellieOS switched off (nothing is applied).
+            var home = rows.FirstOrDefault(r => r.Item.Kind == Kind.Launcher && r.Available);
+            if (home != null && home.Toggle.Checked) { home.Toggle.Checked = false; UpdateButtons(); Snap(dir, name + "-5-dock-locked"); home.Toggle.Checked = true; UpdateButtons(); }
         }
         // Tick the other TVs to show the multi-TV state (nothing is applied).
         foreach (var d in devices.Items.Cast<Device>()) d.Ticked = d.Ready && !IsCurrent(d);
