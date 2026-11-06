@@ -71,7 +71,7 @@ static class Catalog
         new Item(Features, "Turn off Amazon Kids", "", false, "com.amazon.tahoe"),
         new Item(Features, "Turn off the Amazon games hub", "", false, "com.amazon.gamehub"),
         new Item(Features, "Turn off Matter smart-home controls", "", false, "com.amazon.tv.matter", "com.amazon.tv.mattercohost"),
-        new Item(Features, "Turn off antenna live TV", "Live TV guide and channel scan", false, "com.amazon.tv.livetv", "com.amazon.tv.channelscan"),
+        new Item(Features, "Turn off antenna channel scan", "Live TV itself stays on because HDMI inputs need it", false, "com.amazon.tv.channelscan"),
         new Item(Features, "Turn off Amazon's ambient screensaver", "", false, "com.amazon.ftv.screensaver"),
         new Item(Features, "Turn off automatic Fire OS updates", "Not recommended: updates carry security fixes", false,
             "com.amazon.device.software.ota", "com.amazon.tv.forcedotaupdater.v2"),
