@@ -58,11 +58,13 @@ Run `pm disable-user` for each package you want off. A package that isn't on you
 | | Amazon Kids | `com.amazon.tahoe` |
 | | Games hub | `com.amazon.gamehub` |
 | | Matter smart-home | `com.amazon.tv.matter` `com.amazon.tv.mattercohost` |
-| | Antenna live TV | `com.amazon.tv.livetv` `com.amazon.tv.channelscan` |
+| | Antenna channel scan | `com.amazon.tv.channelscan` |
 | | Ambient screensaver | `com.amazon.ftv.screensaver` |
 | | Automatic Fire OS updates (not recommended) | `com.amazon.device.software.ota` `com.amazon.tv.forcedotaupdater.v2` |
 
-**Leave these alone:** Amazon's home screen (`com.amazon.tv.launcher`), anything with `droidlogic`, `tvinput`, `inputpreference` or `tuner` in its name (HDMI inputs and the TV tuner), settings, the keyboard and the Appstore. Disabling them can break input switching or setup.
+**Leave these alone:** Amazon's home screen (`com.amazon.tv.launcher`), `com.amazon.tv.livetv` (HDMI inputs show their picture through its `RemoteTvViewService`, so disabling it breaks them), anything with `droidlogic`, `tvinput`, `inputpreference` or `tuner` in its name (HDMI inputs and the TV tuner), settings, the keyboard and the Appstore. Disabling them can break input switching or setup.
+
+If your HDMI inputs stopped showing a picture after you disabled `com.amazon.tv.livetv`, run `.\adb shell pm enable com.amazon.tv.livetv` and select the input again.
 
 ### Protected packages
 

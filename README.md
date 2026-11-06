@@ -42,7 +42,7 @@ Set up one TV the way you want, then tick the box next to each other TV in the l
 |---|---|
 | **Ads and tracking** (recommended) | Screen content recognition (ACR), advertising ID, ad click-through links, usage and device metrics, crash and log uploads, and the privacy settings (limit ad tracking, no usage data sharing) |
 | **Clutter** (recommended) | Autoplaying featured previews, shopping overlays, Amazon miniTV, store demo content, tutorials and "what's new" pop-ups |
-| **Amazon features** (only the ones nobody uses) | Alexa, profiles, Amazon Photos, Amazon Music, Silk, Amazon Kids, games hub, Matter smart-home, antenna live TV, ambient screensaver, automatic Fire OS updates |
+| **Amazon features** (only the ones nobody uses) | Alexa, profiles, Amazon Photos, Amazon Music, Silk, Amazon Kids, games hub, Matter smart-home, antenna channel scan, ambient screensaver, automatic Fire OS updates |
 | **Home screen** | Install IsafellieOS and make the Home button open it |
 
 Only switches for apps that are actually on the TV can be flipped. The rest show **Not on this TV**. FireSweep never touches HDMI inputs, the tuner, settings, the keyboard, the Appstore, Amazon's own home screen or your installed apps.
