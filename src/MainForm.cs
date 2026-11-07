@@ -359,17 +359,12 @@ class MainForm : Form
         backupBtn = Theme.Button(Theme.IconSave, "Back up now", Theme.Style.Secondary, (s, e) => Run("back up", () => tv.Backup()));
         folderBtn = Theme.Button(Theme.IconFolder, "TV folder", Theme.Style.Secondary, (s, e) => Process.Start("explorer.exe", "\"" + tv.Folder + "\""));
         restoreBtn = Theme.Button(Theme.IconUndo, "Restore everything", Theme.Style.Danger, (s, e) => RestoreAll());
-        pendingLabel = new Label { AutoSize = false, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.Muted, Padding = new Padding(S(14), 0, 0, 0) };
+        pendingLabel = new Label { AutoSize = false, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.Muted, Padding = new Padding(S(14), 0, 0, 0) };
         applyBtn.Width += S(20);
-        applyBtn.Dock = DockStyle.Left;
-        foreach (var b in new[] { restoreBtn, folderBtn, backupBtn }) b.Dock = DockStyle.Right;
-        buttons.Controls.Add(pendingLabel);
-        buttons.Controls.Add(applyBtn);
-        buttons.Controls.Add(restoreBtn);
-        buttons.Controls.Add(new Panel { Dock = DockStyle.Right, Width = S(8) });
-        buttons.Controls.Add(folderBtn);
-        buttons.Controls.Add(new Panel { Dock = DockStyle.Right, Width = S(8) });
-        buttons.Controls.Add(backupBtn);
+        buttons.Controls.AddRange(new Control[] { pendingLabel, applyBtn, restoreBtn, folderBtn, backupBtn });
+        buttons.SizeChanged += (s, e) => ArrangeActionButtons(buttons);
+        applyBtn.SizeChanged += (s, e) => ArrangeActionButtons(buttons);  // its text changes with the number of TVs
+        ArrangeActionButtons(buttons);
 
         var console = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Console, Padding = new Padding(S(12), S(10), S(4), S(6)) };
         logBox = new TextBox
@@ -383,6 +378,29 @@ class MainForm : Form
         bar.Controls.Add(Spacer(12, Theme.Bg));
         bar.Controls.Add(buttons);
         return bar;
+    }
+
+    /// <summary>
+    /// Keeps the buttons on one row while that leaves room for the "changes waiting" note.
+    /// In a narrower window the secondary buttons drop to a second row, so nothing overlaps.
+    /// </summary>
+    void ArrangeActionButtons(Panel row)
+    {
+        int rowHeight = S(42), gap = S(8), width = row.ClientSize.Width;
+        int secondary = restoreBtn.Width + folderBtn.Width + backupBtn.Width + 2 * gap;
+        bool oneRow = applyBtn.Width + S(200) + secondary <= width;
+        row.Height = oneRow ? rowHeight : 2 * rowHeight + gap;
+
+        applyBtn.SetBounds(0, 0, applyBtn.Width, rowHeight);
+        int y = oneRow ? 0 : rowHeight + gap, x = width;
+        foreach (var b in new[] { backupBtn, folderBtn, restoreBtn })
+        {
+            x -= b.Width;
+            b.SetBounds(x, y, b.Width, rowHeight);
+            x -= gap;
+        }
+        int noteRight = oneRow ? restoreBtn.Left : width;
+        pendingLabel.SetBounds(applyBtn.Right, 0, Math.Max(0, noteRight - applyBtn.Right), rowHeight);
     }
 
     static Panel CardPanel()
