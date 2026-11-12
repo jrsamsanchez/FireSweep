@@ -291,15 +291,9 @@ class Tv
     {
         for (int i = 0; i < 5; i++)
         {
-            string d = Sh("dumpsys accessibility");
-            int bound = d.IndexOf("Bound services:", StringComparison.Ordinal);
-            if (bound >= 0)
-            {
-                int end = d.IndexOf('\n', bound);
-                string line = end < 0 ? d.Substring(bound) : d.Substring(bound, end - bound);
-                if (line.Contains("IsafellieOS")) return true;
-            }
-            else if (d.Contains(Catalog.LauncherService) && d.Contains("IsafellieOS Home button")) return true;
+            // Fire OS lists each running (bound) service as "Service[label=<its label>, ...". Fire OS 7
+            // prints that under a bare "services:" with no component name, so match the label.
+            if (Sh("dumpsys accessibility").Contains("Service[label=IsafellieOS Home button")) return true;
             System.Threading.Thread.Sleep(1000);
         }
         return false;
