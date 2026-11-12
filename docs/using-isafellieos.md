@@ -35,6 +35,12 @@ Amazon's home opens and stays put while you use it. As soon as you open an app, 
 
 **Just need a setting?** Open the gear tile and choose **All Fire TV settings**. It opens Amazon's full Settings menu without leaving IsafellieOS.
 
+## Home still opens Amazon's home?
+
+The Home button is caught by an accessibility service called **IsafellieOS Home button**. FireSweep turns it on, then checks that Fire OS actually started it, and its log says so if it didn't. If it didn't, restart the TV (**Settings > My Fire TV > Restart**) and press **Home** again.
+
+If Home still goes to Amazon's home, send the FireSweep log for that TV (in **TV folder**, `activity.log`). It names the TV model, the Fire OS version and which screen Fire OS uses as its home.
+
 ## Switch back to Amazon's home for good
 
 In FireSweep, connect to the TV, switch off **Use IsafellieOS as the home screen** and choose **Apply changes**. IsafellieOS is removed and the Home button opens Amazon's home again. Your other changes, such as the ad and tracking switches, stay as they are.

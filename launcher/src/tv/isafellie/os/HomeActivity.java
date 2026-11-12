@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextClock;
@@ -97,15 +98,33 @@ public class HomeActivity extends Activity {
         dock.setClipToPadding(false);
         int dpad = Tiles.dp(this, 22);
         dock.setPadding(dpad, dpad, dpad, dpad);
+
+        // The shelf is as wide as its tiles up to the screen's width (less the margins), and
+        // scrolls sideways as focus moves once more apps are added than fit across the screen.
+        final int maxShelf = getResources().getDisplayMetrics().widthPixels - 2 * pad;
+        HorizontalScrollView shelfView = new HorizontalScrollView(this) {
+            @Override
+            protected void onMeasure(int widthSpec, int heightSpec) {
+                int limit = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED
+                        ? maxShelf : Math.min(maxShelf, MeasureSpec.getSize(widthSpec));
+                super.onMeasure(MeasureSpec.makeMeasureSpec(limit, MeasureSpec.AT_MOST), heightSpec);
+            }
+        };
+        shelfView.setHorizontalScrollBarEnabled(false);
+        shelfView.setHorizontalFadingEdgeEnabled(true);
+        shelfView.setFadingEdgeLength(Tiles.dp(this, 48));
+        shelfView.setSmoothScrollingEnabled(true);
         GradientDrawable shelf = new GradientDrawable();
         shelf.setColor(0x33FFFFFF);
         shelf.setCornerRadius(Tiles.dp(this, 26));
-        dock.setBackground(shelf);
+        shelfView.setBackground(shelf);
+        shelfView.setClipToOutline(true);
+        shelfView.addView(dock, new FrameLayout.LayoutParams(-2, -2));
         FrameLayout.LayoutParams dlp = new FrameLayout.LayoutParams(-2, -2,
                 Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
         dlp.bottomMargin = Tiles.dp(this, 44);
         root.setClipChildren(false);
-        root.addView(dock, dlp);
+        root.addView(shelfView, dlp);
 
         setContentView(root);
         loadWallpaperList();
