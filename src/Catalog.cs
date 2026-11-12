@@ -26,7 +26,7 @@ static class Catalog
 
     public const string LauncherPackage = "tv.isafellie.os";
     public const string LauncherService = "tv.isafellie.os/tv.isafellie.os.HomeRedirectService";
-    public const int LauncherVersion = 2;
+    public const int LauncherVersion = 3;
 
     /// <summary>Privacy settings in the secure namespace, and the value that turns each off.</summary>
     public static readonly KeyValuePair<string, string>[] PrivacySettings =

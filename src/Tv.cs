@@ -264,7 +264,39 @@ class Tv
         SetAccessibilityServices(others);
         SetAccessibilityServices(others.Concat(new[] { Catalog.LauncherService }).ToList());
         ChangeSetting("accessibility_enabled", "1");
-        Log("  Home button now opens IsafellieOS");
+        if (!HomeRedirectRunning())
+        {
+            // Give Fire OS a second chance to bind it before warning.
+            SetAccessibilityServices(others);
+            SetAccessibilityServices(others.Concat(new[] { Catalog.LauncherService }).ToList());
+        }
+        if (HomeRedirectRunning()) Log("  Home button now opens IsafellieOS");
+        else
+        {
+            Log("  WARNING: Fire OS didn't start the IsafellieOS Home button service, so Home will still open Amazon's home.");
+            Log("  Restart the TV (Settings > My Fire TV > Restart) and try Home again. If it still opens Amazon's home, send this log.");
+            Log("  (" + Maker + " " + Model + ", Fire OS " + FireOs + "; accessibility setting now: " +
+                Sh("settings get secure enabled_accessibility_services").Trim() + ")");
+        }
+        string home = Sh("cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME")
+            .Split('\n').Select(l => l.Trim()).LastOrDefault(l => l.Contains("/"));
+        Log("  Home on this TV is " + (home ?? "unknown"));
+    }
+
+    /// <summary>
+    /// True once Fire OS has started the Home-button service. Turning it on in settings doesn't
+    /// guarantee that on every model, so this checks what's actually running.
+    /// </summary>
+    public bool HomeRedirectRunning()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            // Fire OS lists each running (bound) service as "Service[label=<its label>, ...". Fire OS 7
+            // prints that under a bare "services:" with no component name, so match the label.
+            if (Sh("dumpsys accessibility").Contains("Service[label=IsafellieOS Home button")) return true;
+            System.Threading.Thread.Sleep(1000);
+        }
+        return false;
     }
 
     void RemoveLauncher()
