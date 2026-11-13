@@ -37,9 +37,9 @@ Amazon's home opens and stays put while you use it. As soon as you open an app, 
 
 ## Home still opens Amazon's home?
 
-The Home button is caught by an accessibility service called **IsafellieOS Home button**. FireSweep turns it on, then checks that Fire OS actually started it, and its log says so if it didn't. If it didn't, restart the TV (**Settings > My Fire TV > Restart**) and press **Home** again.
+The Home button is caught by an accessibility service called **IsafellieOS Home button**. Some Fire TVs, such as the first Fire TV Stick 4K on Fire OS 6, won't run it. There FireSweep switches on a backup that watches for Amazon's home and swaps it for IsafellieOS, so you may see Amazon's home for a moment after pressing **Home**. FireSweep's log says which one the TV is using.
 
-If Home still goes to Amazon's home, send the FireSweep log for that TV (in **TV folder**, `activity.log`). It names the TV model, the Fire OS version and which screen Fire OS uses as its home.
+If Home still goes to Amazon's home, send the files from that TV's folder in FireSweep (**TV folder**): `activity.log`, and `home-button.txt` if it's there.
 
 ## Switch back to Amazon's home for good
 

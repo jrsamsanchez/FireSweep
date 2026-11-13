@@ -93,6 +93,7 @@ class Tv
     public Dictionary<string, string> Secure = new Dictionary<string, string>();
     public string Accessibility = "null";
     public int LauncherVersion;
+    public bool UsageAccess;  // IsafellieOS's backup Home redirect is allowed to run
     public Action<string> Log;
 
     public Tv(string addr, Action<string> log) { Addr = addr; Log = log; }
@@ -135,6 +136,7 @@ class Tv
         Accessibility = Secure["enabled_accessibility_services"];
         var m = Regex.Match(Sh("dumpsys package " + Catalog.LauncherPackage + " | grep versionCode"), @"versionCode=(\d+)");
         LauncherVersion = All.Contains(Catalog.LauncherPackage) && m.Success ? int.Parse(m.Groups[1].Value) : 0;
+        UsageAccess = LauncherVersion > 0 && Sh("appops get " + Catalog.LauncherPackage + " GET_USAGE_STATS").Contains("allow");
     }
 
     public bool HasBackup
@@ -152,7 +154,7 @@ class Tv
             case Kind.Settings:
                 return Catalog.PrivacySettings.All(s => Secure[s.Key] == s.Value);
             case Kind.Launcher:
-                return LauncherVersion > 0 && Accessibility.Contains(Catalog.LauncherService);
+                return LauncherVersion > 0 && (Accessibility.Contains(Catalog.LauncherService) || UsageAccess);
             default:
                 var present = Present(it);
                 if (present.Length == 0) return null;
@@ -263,24 +265,62 @@ class Tv
         if (J.AccessibilityBefore == null && !Accessibility.Contains(Catalog.LauncherService)) J.AccessibilityBefore = Accessibility;
         SetAccessibilityServices(others);
         SetAccessibilityServices(others.Concat(new[] { Catalog.LauncherService }).ToList());
+        string writtenBack = Sh("settings get secure enabled_accessibility_services").Trim();
         ChangeSetting("accessibility_enabled", "1");
+        // The backup redirect, for TVs that won't run the service: it watches which app is in front
+        // (usage access) and opens IsafellieOS from the background (draw over apps, for Fire OS 8).
+        // Both are IsafellieOS's own permissions, so uninstalling it takes them away again.
+        Sh("appops set " + Catalog.LauncherPackage + " GET_USAGE_STATS allow; appops set " + Catalog.LauncherPackage + " SYSTEM_ALERT_WINDOW allow");
         if (!HomeRedirectRunning())
         {
-            // Give Fire OS a second chance to bind it before warning.
+            // Give Fire OS a second chance to bind it.
             SetAccessibilityServices(others);
             SetAccessibilityServices(others.Concat(new[] { Catalog.LauncherService }).ToList());
         }
+        string home = Sh("cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME")
+            .Split('\n').Select(l => l.Trim()).LastOrDefault(l => l.Contains("/"));
         if (HomeRedirectRunning()) Log("  Home button now opens IsafellieOS");
         else
         {
-            Log("  WARNING: Fire OS didn't start the IsafellieOS Home button service, so Home will still open Amazon's home.");
-            Log("  Restart the TV (Settings > My Fire TV > Restart) and try Home again. If it still opens Amazon's home, send this log.");
-            Log("  (" + Maker + " " + Model + ", Fire OS " + FireOs + "; accessibility setting now: " +
-                Sh("settings get secure enabled_accessibility_services").Trim() + ")");
+            // Fire OS 6 clears the setting as soon as it's written, so the service never starts.
+            Log("  Fire OS won't run the IsafellieOS Home button service here (" + Maker + " " + Model + ", Fire OS " + FireOs +
+                "; setting read back as " + writtenBack + ", now " + Sh("settings get secure enabled_accessibility_services").Trim() + ").");
+            SaveHomeDiagnostics(home);
+            Sh("am start -n " + Catalog.LauncherPackage + "/.HomeActivity");
+            if (HomeWatcherRunning())
+                Log("  Using the backup instead: Home opens IsafellieOS, though Amazon's home may show for a moment first.");
+            else
+                Log("  WARNING: the backup didn't start either, so Home will still open Amazon's home. Send home-button.txt from this TV's folder.");
         }
-        string home = Sh("cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME")
-            .Split('\n').Select(l => l.Trim()).LastOrDefault(l => l.Contains("/"));
         Log("  Home on this TV is " + (home ?? "unknown"));
+    }
+
+    /// <summary>True once IsafellieOS's backup Home watcher is running.</summary>
+    public bool HomeWatcherRunning()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            if (Sh("dumpsys activity services " + Catalog.LauncherPackage).Contains("HomeWatchService")) return true;
+            System.Threading.Thread.Sleep(1000);
+        }
+        return false;
+    }
+
+    /// <summary>Saves what Fire OS says about accessibility and IsafellieOS to home-button.txt in the TV's folder.</summary>
+    void SaveHomeDiagnostics(string home)
+    {
+        try
+        {
+            File.WriteAllText(Path.Combine(Folder, "home-button.txt"), string.Join("\r\n", new[]
+            {
+                "TV: " + Maker + " " + Model + ", Fire OS " + FireOs, "Home: " + home, "",
+                "== settings", Sh("settings get secure enabled_accessibility_services; settings get secure accessibility_enabled"),
+                "== appops", Sh("appops get " + Catalog.LauncherPackage),
+                "== dumpsys accessibility", Sh("dumpsys accessibility"),
+                "== logcat (accessibility)", Sh("logcat -d -t 2000 | grep -i -E 'accessib|isafellie'"),
+            }));
+        }
+        catch (Exception e) { Log("  (couldn't save home-button.txt: " + e.Message + ")"); }
     }
 
     /// <summary>

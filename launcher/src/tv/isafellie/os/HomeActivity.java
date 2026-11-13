@@ -128,6 +128,7 @@ public class HomeActivity extends Activity {
 
         setContentView(root);
         loadWallpaperList();
+        HomeWatchService.startIfNeeded(this);
     }
 
     private ImageView wallpaperView() {
@@ -224,6 +225,7 @@ public class HomeActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        HomeGuard.stopAllowing(this); // back on IsafellieOS, so Amazon's home is redirected again
         buildDock();
         ui.removeCallbacks(rotate);
         ui.post(rotate);

@@ -185,14 +185,14 @@ final class Tiles {
 
     /** Opens Amazon's full Settings menu, which lives inside its home screen, without being redirected. */
     static void openAmazonSettings(Context c) {
-        HomeRedirectService.allowAmazonHome(c);
+        HomeGuard.allowAmazonHome(c);
         launch(c, new Intent().setComponent(new ComponentName(AMAZON_LAUNCHER, AMAZON_LAUNCHER + ".ui.SettingsActivity"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
     }
 
     /** Opens Amazon's own home (for profiles and anything else that lives there) without being redirected. */
     static void openAmazonHome(Context c) {
-        HomeRedirectService.allowAmazonHome(c);
+        HomeGuard.allowAmazonHome(c);
         Intent i = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
                 .setPackage(AMAZON_LAUNCHER).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         launch(c, i);
